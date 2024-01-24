@@ -40,12 +40,15 @@ def main():
     all_images = []
     all_labels = []
     while len(all_images) * args.batch_size < args.num_samples:
+        print(args.batch_size, args.image_size, args.num_samples)
         model_kwargs = {}
         if args.class_cond:
             classes = th.randint(
                 low=0, high=NUM_CLASSES, size=(args.batch_size,), device=dist_util.dev()
             )
             model_kwargs["y"] = classes
+        model.to(dist_util.dev())
+        print("Running on device:", th.cuda.get_device_name(dist_util.dev()))
         sample_fn = (
             diffusion.p_sample_loop if not args.use_ddim else diffusion.ddim_sample_loop
         )
@@ -78,6 +81,7 @@ def main():
     if dist.get_rank() == 0:
         shape_str = "x".join([str(x) for x in arr.shape])
         out_path = os.path.join(logger.get_dir(), f"samples_{shape_str}.npz")
+        out_path = "/home/tefimov/improved-diffusion/samples.npz"
         logger.log(f"saving to {out_path}")
         if args.class_cond:
             np.savez(out_path, arr, label_arr)
@@ -91,7 +95,7 @@ def main():
 def create_argparser():
     defaults = dict(
         clip_denoised=True,
-        num_samples=10000,
+        num_samples=2,
         batch_size=16,
         use_ddim=False,
         model_path="",
